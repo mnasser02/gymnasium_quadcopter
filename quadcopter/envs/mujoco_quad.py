@@ -25,7 +25,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         max_time_steps=1000,
         observation_noise_std=0,
         env_radius=2,
-        position_reward_weight=4e-3,
+        position_reward_weight=5e-3,
         orientation_reward_weight=0,
         linear_velocity_reward_weight=5e-4,
         angular_velocity_reward_weight=3e-4,
