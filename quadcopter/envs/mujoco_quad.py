@@ -23,22 +23,21 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         model_file="quadcopter.xml",
         frame_skip=5,
         max_time_steps=1000,
-        observation_noise_std=0,
-        env_radius=2,
-        position_reward_weight=5e-3,
+        observation_noise_std=0.005,
+        env_radius=3,
+        position_reward_weight=0.005,
         orientation_reward_weight=0,
-        linear_velocity_reward_weight=5e-4,
-        angular_velocity_reward_weight=3e-4,
+        linear_velocity_reward_weight=0.0005,
+        angular_velocity_reward_weight=0.0003,
         reach_goal_reward=0.15,
-        alive_reward=0.05,
-        control_cost_weight=2e-4,
+        alive_reward=0.01,
+        control_cost_weight=0.0002,
         render_mode=None,
         reset_info=False,
-        random_target=True,
     ):
         """
         # observation_space: [-inf, inf] shape=(18,)
-            err_xyz: quad_pos - target_pos                     m
+            err_xyz: quad_pos - target_pos      (3)            m
             rotation matrix                     (9)            rad
             linear_velocity                     (3)            m/s
             angular_velocity                    (3)            rad/s
@@ -65,17 +64,14 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
             control_cost_weight,
             render_mode,
             reset_info,
-            random_target,
         )
 
         observation_space = Box(low=-np.inf, high=np.inf, shape=(18,), dtype=np.float16)
+        
         self.target_pos = np.array([0, 0, 2.0])
-
         self.max_time_steps = max_time_steps
         self.observation_noise_std = observation_noise_std
         self.reset_info = reset_info
-        self.random_target = random_target
-
         self.env_radius = env_radius
 
         self.position_reward_weight = position_reward_weight
@@ -112,15 +108,15 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         init_pos = err + self.target_pos
 
         # orientation
-        init_rot_mat = special_ortho_group.rvs(3)
-        quat = R.from_matrix(init_rot_mat).as_quat()
+        init_rot_mat = special_ortho_group.rvs(3) # choose from space of possible rotation matrices
+        init_quat = R.from_matrix(init_rot_mat).as_quat()
 
         # velocity
         init_linear_velocity = self.np_random.uniform(low=-1, high=1, size=(3,))
         init_angular_velocity = self.np_random.uniform(low=-1, high=1, size=(3,))
 
         # set states
-        qpos = np.concatenate((init_pos, quat))
+        qpos = np.concatenate((init_pos, init_quat))
         qvel = np.concatenate((init_linear_velocity, init_angular_velocity))
         self.set_state(qpos, qvel)
 
@@ -141,22 +137,16 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         action = np.array(action)
         action = self._adjust_action(action)
 
-        # xyz_position_before = self.get_body_com("core")[:3].copy()
         self.do_simulation(action, self.frame_skip)
-        # xyz_position_after = self.get_body_com("core")[:3].copy()
 
-        # xyz_velocity = (xyz_position_after - xyz_position_before) / self.dt
-        # x_velocity, y_velocity, z_velocity = xyz_velocity
+        # after applying action
         obs = self._get_obs()
-        pos = self.target_pos + obs[:3]
-        # obs[12] = x_velocity
-        # obs[13] = y_velocity
-        # obs[14] = z_velocity
 
         reward = self._get_reward(obs)
         cost = self._control_cost(action)
         total_reward = reward - cost
 
+        pos = self.target_pos + obs[:3]
         pos_norm = np.linalg.norm(pos)
 
         terminated = bool(
@@ -173,7 +163,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
 
         obs += self.np_random.normal(
             0, self.observation_noise_std, size=obs.shape
-        )  # noise
+        )  # gaussian noise
 
         return obs, total_reward, terminated, truncated, info
 
@@ -187,15 +177,11 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         rot_mat = R.from_quat(quat).as_matrix().flatten()
 
         error_pos = position - self.target_pos
-        obs = np.concatenate((error_pos, rot_mat, qvel), dtype=np.float16).ravel()
+        obs = np.concatenate((error_pos, rot_mat, qvel), dtype=np.float16).ravel() # dtype depends on sensor resolution
         return obs
 
     def _get_reward(self, obs):
-        """
-        minimize: position error, linear/angular velocity, motor thrust
-        bonus reward to reach goal
-        punish pitch, roll when near target?
-        """
+
         err_norm = np.linalg.norm(obs[:3])
         euler = R.from_quat(self.data.qpos[3:]).as_euler("xyz")
         euler_norm = np.linalg.norm(euler)
@@ -208,7 +194,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         angular_vel_reward = -self.angular_velocity_reward_weight * angular_vel_norm
 
         reach_goal_reward = 0
-        if err_norm < 0.01:
+        if err_norm < 0.01: # within 1 cm to target
             reach_goal_reward = self.reach_goal_reward
 
         alive_reward = self.alive_reward
@@ -223,14 +209,15 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         )
         return total_reward
 
-    def _control_cost(self, action):
+    def _control_cost(self, action): # save motor power when preferable
         control_cost = self.control_cost_weight * np.linalg.norm(action)
         return control_cost
 
     def _adjust_action(self, action):
         mass = self.model.body_mass[1]
-        hover_force = mass * 9.81 * 0.25
-        action += hover_force / 3.0
+        hover_thrust = mass * 9.81 * 0.25 / 3.0 # desired mean of normalized action sampling
+        # print(hover_force)
+        action += hover_thrust
         action = np.clip(action, 0.0, 1.0)
         return action
 
@@ -238,10 +225,3 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
 # test = QuadcopterEnv()
 # test.reset()
 # test.step([0.0, 0.0, 0.0, 1.0])
-# test.step([0.0, 0.0, 0.0, 1.0])
-# test.step([0.0, 0.0, 1.0, 1.0])
-# test.step([1.0, 1.0, 1.0, 1.0])
-# test.step([1.0, 1.0, 1.0, 1.0])
-# test.step([1.0, 1.0, 1.0, 1.0])
-# test.step([1.0, 1.0, 1.0, 1.0])
-# test.step([1.0, 1.0, 1.0, 1.0])

@@ -8,26 +8,12 @@ import datetime
 ENV_NAME = "Quadcopter-v0"
 SEED = 42
 
-
 model = PPO.load(
     f"./policy/PPO_{ENV_NAME}",
     tensorboard_log="logs",
 )
 vec_env = make_vec_env(ENV_NAME, n_envs=3, seed=SEED)
 model.set_env(vec_env)
-
-# Separate evaluation env
-eval_env = gym.make(ENV_NAME)
-# Use deterministic actions for evaluation
-eval_callback = EvalCallback(
-    eval_env,
-    best_model_save_path="./logs/",
-    log_path="logs",
-    eval_freq=500,
-    deterministic=True,
-    render=False,
-)
-
 
 model.learn(total_timesteps=10_000_000, reset_num_timesteps=False)
 

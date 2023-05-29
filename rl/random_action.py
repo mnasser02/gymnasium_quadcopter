@@ -5,7 +5,6 @@ import quadcopter
 ENVIRONMENT = "Quadcopter-v0"
 
 env = gym.make(ENVIRONMENT, render_mode="human")
-# model = PPO.load(f"PPO_{ENVIRONMENT}")
 
 obs, info = env.reset()
 while True:
@@ -13,7 +12,6 @@ while True:
     obs, reward, terminated, truncated, info = env.step(action)
     # print(obs[:3])
     env.render()
-    # VecEnv resets automatically
     if terminated or truncated:
         obs = env.reset()
 
