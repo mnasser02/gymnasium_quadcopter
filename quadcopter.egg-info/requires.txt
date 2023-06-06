@@ -1,7 +1,3 @@
-matplotlib
-scipy
 numpy
-
-[all]
-
-[mujoco]
+scipy
+mujoco

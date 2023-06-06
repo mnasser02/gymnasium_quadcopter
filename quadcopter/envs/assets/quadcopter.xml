@@ -50,22 +50,22 @@
             <joint name="root" type="free" damping="0" armature="0" pos="0 0 0" limited="false"/>
             <camera name="track" mode="trackcom" pos="0 -3 1.0" xyaxes="1 0 0 0 0 1"/>
 
-            <geom name="core_geom" type="box" pos="0 0 0" quat="1 0 0 0" size=".1 .1 .02" rgba=".81 0 .06 1" mass=".16"/>
+            <geom name="core_geom" type="box" pos="0 0 0" quat="1 0 0 0" size=".1 .1 .02" rgba=".81 0 .06 1" mass=".345"/>
 
-            <geom name="arm_front_left" type="box" pos=".22 .22 0" size=".21 .03 .01" quat=".924 0 0 .383" rgba="0 0 0 1" mass=".082"/>
             <geom name="arm_front_right" type="box" pos=".22 -.22 0" size=".21 .03 .01" quat=".383 0 0 .924" rgba="0 0 0 1" mass=".082"/>
+            <geom name="arm_front_left" type="box" pos=".22 .22 0" size=".21 .03 .01" quat=".924 0 0 .383" rgba="0 0 0 1" mass=".082"/>
             <geom name="arm_back_right" type="box" pos="-.22 -.22 0" size=".21 .03 .01" quat="-.383 0 0 .924" rgba="0 0 0 1" mass=".082"/>
             <geom name="arm_back_left" type="box" pos="-.22 .22 0" size=".21 .03 .01" quat=".924 0 0 -.383" rgba="0 0 0 1" mass=".082"/>
 
-            <site name="motor_front_left" type="cylinder" pos=".35 .35 .0075" size=".01 .0025" quat="1 0 0 0" rgba=".3 .8 .3 1"/>
             <site name="motor_front_right" type="cylinder" pos=".35 -.35 .0075" size=".01 .0025" quat="1 0 0 0" rgba=".3 .8 .3 1"/>
+            <site name="motor_front_left" type="cylinder" pos=".35 .35 .0075" size=".01 .0025" quat="1 0 0 0" rgba=".3 .8 .3 1"/>
             <site name="motor_back_right" type="cylinder" pos="-.35 -.35 .0075" size=".01 .0025" quat="1 0 0 0" rgba=".3 .8 .3 1"/>
             <site name="motor_back_left" type="cylinder" pos="-.35  .35 .0075" size=".01 .0025" quat="1 0 0 0" rgba=".3 .8 .3 1"/>
 
-            <geom name="thruster_front_left" type="cylinder" pos=".35 .35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".066"/>
-            <geom name="thruster_front_right" type="cylinder" pos=".35 -.35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".066"/>
-            <geom name="thruster_back_right" type="cylinder" pos="-.35 -.35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".066"/>
-            <geom name="thruster_back_left" type="cylinder" pos="-.35 .35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".066"/>
+            <geom name="thruster_front_right" type="cylinder" pos=".35 -.35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".065"/>
+            <geom name="thruster_front_left" type="cylinder" pos=".35 .35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".065"/>
+            <geom name="thruster_back_right" type="cylinder" pos="-.35 -.35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".065"/>
+            <geom name="thruster_back_left" type="cylinder" pos="-.35 .35 .0075" size="0.255 .0025" quat="1 0 0 0" rgba=".75 0 .06 .5" mass=".065"/>
 
             <site name="x_axis" type="box" pos=".1 0 0" size=".1 .005 .005" quat="1 0 0 0" rgba="1 0 0 0.3"/>
             <site name="y_axis" type="box" pos="0 .1 0" size=".1 .005 .005" quat=".707 0 0 .707" rgba="0 1 0 0.3"/>
@@ -74,10 +74,10 @@
     </worldbody>
 
     <actuator>
-        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 3 0 0 -.3" site="motor_front_left"/>
-        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 3 0 0 .3" site="motor_back_left"/>
-        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 3 0 0 -.3" site="motor_back_right"/>
-        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 3 0 0 .3" site="motor_front_right"/>
+        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 9.15 0 0 1" site="motor_front_right"/>
+        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 9.15 0 0 -1" site="motor_front_left"/>
+        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 9.15 0 0 -1" site="motor_back_right"/>
+        <motor ctrllimited="true" ctrlrange="0 1" gear="0 0 9.15 0 0 1" site="motor_back_left"/>
     </actuator>
 
 </mujoco>

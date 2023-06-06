@@ -23,14 +23,14 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         model_file="quadcopter.xml",
         frame_skip=5,
         max_time_steps=1000,
-        observation_noise_std=0.005,
-        env_radius=3,
+        observation_noise_std=0.0,
+        err_tolerance=5,
         position_reward_weight=0.005,
         orientation_reward_weight=0,
         linear_velocity_reward_weight=0.0005,
-        angular_velocity_reward_weight=0.0003,
+        angular_velocity_reward_weight=0.001,
         reach_goal_reward=0.15,
-        alive_reward=0.01,
+        alive_reward=0.05,
         control_cost_weight=0.0002,
         render_mode=None,
         reset_info=False,
@@ -54,7 +54,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
             frame_skip,
             max_time_steps,
             observation_noise_std,
-            env_radius,
+            err_tolerance,
             position_reward_weight,
             orientation_reward_weight,
             linear_velocity_reward_weight,
@@ -72,7 +72,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         self.max_time_steps = max_time_steps
         self.observation_noise_std = observation_noise_std
         self.reset_info = reset_info
-        self.env_radius = env_radius
+        self.err_tolerance = err_tolerance
 
         self.position_reward_weight = position_reward_weight
         self.orientation_reward_weight = orientation_reward_weight
@@ -97,15 +97,18 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
 
         ## random intialization ##
 
-        # target position
-        self.target_pos = np.array([0, 0, 2.0])
 
-        # quad position
-        x = self.np_random.uniform(low=-1, high=1, size=(1,))
-        y = self.np_random.uniform(low=-1, high=1, size=(1,))
-        z = self.np_random.uniform(low=-1.9, high=1, size=(1,))
-        err = np.concatenate((x, y, z))
-        init_pos = err + self.target_pos
+        # quadcopter position
+        x = self.np_random.uniform(low=-2, high=2, size=(1,))
+        y = self.np_random.uniform(low=-2, high=2, size=(1,))
+        z = self.np_random.uniform(low=0.1, high=2, size=(1,))
+        init_pos = np.concatenate((x, y, z))
+
+        # error vector
+        init_err = np.array([2.0, 0, 1.0]) # move to the point 2 meters ahead (along x) and 1 meter above intial position
+        
+        # target position
+        self.target_pos = init_pos + init_err
 
         # orientation
         init_rot_mat = special_ortho_group.rvs(3) # choose from space of possible rotation matrices
@@ -123,7 +126,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         observation = self._get_obs()
         info = {
             "initial_pos": init_pos,
-            "targest_pos": self.target_pos,
+            "error_vector": init_err,
             "linear_vel": init_linear_velocity,
             "angular_vel": init_angular_velocity,
         }
@@ -146,11 +149,12 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         cost = self._control_cost(action)
         total_reward = reward - cost
 
-        pos = self.target_pos + obs[:3]
-        pos_norm = np.linalg.norm(pos)
+        pos = self.target_pos - obs[:3]
+        # pos_norm = np.linalg.norm(pos)
 
+        err_norm = np.linalg.norm(obs[:3])
         terminated = bool(
-            (not np.isfinite(obs).all()) or pos_norm > self.env_radius or pos[2] < 0.1
+            (not np.isfinite(obs).all()) or err_norm > self.err_tolerance or pos[2] < 0.1
         )
         truncated = self._time_steps >= self.max_time_steps
 
@@ -176,7 +180,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
         quat = np.array(qpos[3:7])
         rot_mat = R.from_quat(quat).as_matrix().flatten()
 
-        error_pos = position - self.target_pos
+        error_pos = self.target_pos - position  
         obs = np.concatenate((error_pos, rot_mat, qvel), dtype=np.float16).ravel() # dtype depends on sensor resolution
         return obs
 
@@ -215,7 +219,7 @@ class QuadcopterEnv(MujocoEnv, utils.EzPickle):
 
     def _adjust_action(self, action):
         mass = self.model.body_mass[1]
-        hover_thrust = mass * 9.81 * 0.25 / 3.0 # desired mean of normalized action sampling
+        hover_thrust = mass * 9.81 * 0.25 / 9.15 # desired mean of normalized action sampling
         # print(hover_force)
         action += hover_thrust
         action = np.clip(action, 0.0, 1.0)

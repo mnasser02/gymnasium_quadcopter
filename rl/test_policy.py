@@ -5,7 +5,7 @@ import quadcopter
 ENVIRONMENT = "Quadcopter-v0"
 
 env = gym.make(ENVIRONMENT, render_mode="human", max_time_steps=400)
-model = PPO.load("./policy2/best_model")
+model = PPO.load("./policy/best_model")
 
 obs, info = env.reset()
 while True:

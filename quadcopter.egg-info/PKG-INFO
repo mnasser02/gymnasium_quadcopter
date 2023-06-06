@@ -3,5 +3,3 @@ Name: quadcopter
 Version: 0.0.1
 Author: Mahdi Nasser
 Author-email: mhnasser23@gmail.com
-Provides-Extra: mujoco
-Provides-Extra: all
