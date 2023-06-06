@@ -134,3 +134,4 @@ __pycache__/
 quadcopter.egg-info/
 MUJOCO_LOG.TXT
 *.egg-info/
+.vscode/
